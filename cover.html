@@ -1,0 +1,365 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>base26: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/BlindGarret/lexorank/base26/base26.go (100.0%)</option>
+				
+				<option value="file1">github.com/BlindGarret/lexorank/helpers.go (100.0%)</option>
+				
+				<option value="file2">github.com/BlindGarret/lexorank/public.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package base26
+
+import (
+        "math/big"
+        "slices"
+)
+
+var base26 = []byte{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'}
+var index = map[byte]int{'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'G': 6, 'H': 7, 'I': 8, 'J': 9, 'K': 10, 'L': 11, 'M': 12, 'N': 13, 'O': 14, 'P': 15, 'Q': 16, 'R': 17, 'S': 18, 'T': 19, 'U': 20, 'V': 21, 'W': 22, 'X': 23, 'Y': 24, 'Z': 25}
+
+func Encode(val uint64) string <span class="cov8" title="1">{
+        var result []byte
+        for val &gt; 0 </span><span class="cov8" title="1">{
+                //val--
+                result = append(result, base26[val%26])
+                val /= 26
+        }</span>
+
+        <span class="cov8" title="1">slices.Reverse(result)
+        return string(result)</span>
+}
+
+func Decode(s string) uint64 <span class="cov8" title="1">{
+        var result uint64 = 0
+        length := len(s) - 1
+        bigInt := big.NewInt(26)
+        byteIndex := big.NewInt(0)
+        power := big.NewInt(0)
+        for i := range s </span><span class="cov8" title="1">{
+                c := s[length-i]
+                byteOffset := index[c]
+                byteIndex.SetInt64(int64(i))
+                result += uint64(byteOffset) * power.Exp(bigInt, byteIndex, nil).Uint64()
+        }</span>
+        <span class="cov8" title="1">return result</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package lexorank
+
+import (
+        "fmt"
+        "strings"
+
+        "github.com/BlindGarret/lexorank/base26"
+)
+
+func calculateRankGapSize(objectCount uint64, minGapSize uint64) (gapSize uint64, maxVal uint64, err error) <span class="cov8" title="1">{
+        minVal := objectCount*minGapSize + objectCount
+        if minVal &lt; objectCount </span><span class="cov8" title="1">{
+                // if we get here, we've overflowed the uint64
+                return 0, 0, ErrGapSizeToLargeForObjectCount
+        }</span>
+        <span class="cov8" title="1">base36MinVal := base26.Encode(minVal)
+        minCharLength := len(base36MinVal)
+        maxVal = base26.Decode(strings.Repeat("Z", minCharLength))
+
+        // you can get a tighter fit by subtracting one from object count here, but leading zeroes
+        // break our growth strategy, so we'll just leave it as is
+        return maxVal / objectCount, maxVal, nil</span>
+}
+
+func calculateMiddleRank(first string, second string) string <span class="cov8" title="1">{
+        paddedFirst, paddedSecond := padLowerValue(first, second)
+        firstVal := base26.Decode(paddedFirst)
+        secondVal := base26.Decode(paddedSecond)
+        difference := secondVal - firstVal
+        if difference &lt; 2 </span><span class="cov8" title="1">{
+                // We don't have a diff so increment the value of the first rank
+                return paddedFirst + "M" // M is the middle of base26, it gives a bit of room for additional sorting until indexing happens.
+        }</span> else<span class="cov8" title="1"> {
+                return base26.Encode(firstVal + difference/2)
+        }</span>
+}
+
+func padLowerValue(first string, second string) (string, string) <span class="cov8" title="1">{
+        for len(first) &lt; len(second) </span><span class="cov8" title="1">{
+                first = first + "A"
+        }</span>
+        <span class="cov8" title="1">for len(second) &lt; len(first) </span><span class="cov8" title="1">{
+                second = second + "A"
+        }</span>
+        <span class="cov8" title="1">return first, second</span>
+}
+
+func getDirection(nextBucket int) (directionFunction, Direction) <span class="cov8" title="1">{
+        if nextBucket == 0 </span><span class="cov8" title="1">{
+                return beginToEndFunc, BeginningToEnd
+        }</span>
+        <span class="cov8" title="1">return endToBeginFunc, EndToBegining</span>
+}
+
+// directionFunction is a function that returns the next rank based on the current rank and the gap size
+type directionFunction func(currentID uint64, gapSize uint64) uint64
+
+var beginToEndFunc = func(currentID uint64, gapSize uint64) uint64 <span class="cov8" title="1">{
+        return currentID + gapSize
+}</span>
+var endToBeginFunc = func(currentID uint64, gapSize uint64) uint64 <span class="cov8" title="1">{
+        return currentID - gapSize
+}</span>
+
+func nextBucket(currentBucket int) int <span class="cov8" title="1">{
+        if currentBucket == MaxBucketValue </span><span class="cov8" title="1">{
+                return 0
+        }</span>
+        <span class="cov8" title="1">return currentBucket + 1</span>
+}
+
+func formatRank(bucket int, id string, paddedIDLen int) string <span class="cov8" title="1">{
+        return fmt.Sprintf("%d|%s%s", bucket, strings.Repeat("A", max(paddedIDLen-len(id), 0)), id)
+}</span>
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package lexorank
+
+import (
+        "strconv"
+        "strings"
+
+        "github.com/BlindGarret/lexorank/base26"
+)
+
+// MaxBucketValue is the maximum value a bucket can be before it wraps around to 0, default is 2
+var MaxBucketValue = 2
+
+// Direction is the direction of movement for reindexing through the set. Whether it's going from begining to end or end to begining will matter based on which bucket we are moving to
+type Direction string
+
+const (
+        BeginningToEnd = "beginingToEnd"
+        EndToBegining  = "endToBegining"
+)
+
+// Indexer is a lexorank index generator for reindexing objects to ensure they are spread throughout the lexorank space
+type Indexer struct {
+        minGapSize        uint64
+        currentId         uint64
+        gapSize           uint64
+        newBucket         int
+        directionFunction directionFunction
+        direction         Direction
+        idLength          int
+}
+
+// NewIndexer creates a new indexer for reindexing objects in the lexorank space
+func NewIndexer(minGapSize uint64, objectCount uint64, currentBucket int) (*Indexer, error) <span class="cov8" title="1">{
+        gapSize, maxVal, err := calculateRankGapSize(objectCount, minGapSize)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">newBucket := nextBucket(currentBucket)
+        directionFunc, direction := getDirection(newBucket)
+        var currentId uint64 = 1
+        if direction == EndToBegining </span><span class="cov8" title="1">{
+                currentId = maxVal
+        }</span>
+
+        <span class="cov8" title="1">maxId := base26.Encode(maxVal)
+
+        return &amp;Indexer{
+                minGapSize:        minGapSize,
+                gapSize:           gapSize,
+                newBucket:         newBucket,
+                directionFunction: directionFunc,
+                direction:         direction,
+                currentId:         currentId,
+                idLength:          len(maxId),
+        }, err</span>
+}
+
+// Next returns the next rank in the lexorank space
+func (i *Indexer) Next() string <span class="cov8" title="1">{
+        nextRank := formatRank(i.newBucket, base26.Encode(i.currentId), i.idLength)
+        i.currentId = i.directionFunction(i.currentId, i.gapSize)
+        return nextRank
+}</span>
+
+// Direction returns the direction you should travel through your set during reindexing
+func (i *Indexer) Direction() Direction <span class="cov8" title="1">{
+        return i.direction
+}</span>
+
+// DissectRank is a helper function which takes a rank and returns the bucket and id of the rank
+func DissectRank(rank string) (bucket int, id string, err error) <span class="cov8" title="1">{
+        parts := strings.Split(rank, "|")
+        if len(parts) != 2 || parts[1] == "" </span><span class="cov8" title="1">{
+                return 0, "", ErrRankFormatInvalid
+        }</span>
+        <span class="cov8" title="1">bucket, err = strconv.Atoi(parts[0])
+        if err != nil </span><span class="cov8" title="1">{
+                return 0, "", ErrRankFormatInvalid // this hides the ATOI error but it unifies the interface
+        }</span>
+        <span class="cov8" title="1">id = parts[1]
+        return</span>
+}
+
+// Between returns the rank that is between the two provided ranks
+func Between(first string, second string) (string, error) <span class="cov8" title="1">{
+        firstBucket, firstID, err := DissectRank(first)
+        if err != nil </span><span class="cov8" title="1">{
+                return "", err
+        }</span>
+
+        <span class="cov8" title="1">_, secondID, err := DissectRank(second)
+        if err != nil </span><span class="cov8" title="1">{
+                return "", err
+        }</span>
+
+        <span class="cov8" title="1">rank := calculateMiddleRank(firstID, secondID)
+        if len(rank) &gt; 13 </span><span class="cov8" title="1">{
+                // This is most likely an overflow. There exists some set of values where this isn't but testing for them is costly,
+                // as normal overflow tests don't work. For example a number starting with Z which is 14 digits long has overflows 5 times or more,
+                // meaning it could be greater than or less than the original value when it's done.
+                return "", ErrGapSizeToLargeForObjectCount
+        }</span>
+        <span class="cov8" title="1">return formatRank(
+                firstBucket,
+                calculateMiddleRank(firstID, secondID),
+                max(len(firstID), len(secondID)),
+        ), nil</span>
+}
+
+func Next(currentMaxRank string, widestRank string, stepSize uint64) (string, error) <span class="cov8" title="1">{
+        bucket, id, err := DissectRank(currentMaxRank)
+        if err != nil </span><span class="cov8" title="1">{
+                return "", err
+        }</span>
+        <span class="cov8" title="1">_, wideId, err := DissectRank(widestRank)
+        if err != nil </span><span class="cov8" title="1">{
+                return "", err
+        }</span>
+
+        <span class="cov8" title="1">maxRank, _ := padLowerValue(id, wideId)
+        if len(maxRank) &gt; 13 </span><span class="cov8" title="1">{
+                // This is most likely an overflow. There exists some set of values where this isn't but testing for them is costly,
+                // as normal overflow tests don't work. For example a number starting with Z which is 14 digits long has overflows 5 times or more,
+                // meaning it could be greater than or less than the original value when it's done.
+                return "", ErrGapSizeToLargeForObjectCount
+        }</span>
+        <span class="cov8" title="1">maxRankValue := base26.Decode(maxRank)
+
+        newRankValue := maxRankValue + stepSize
+        newRank := base26.Encode(newRankValue)
+        if newRankValue &lt; stepSize || newRankValue &lt; maxRankValue </span><span class="cov8" title="1">{
+                // We rolled over
+                return "", ErrGapSizeToLargeForObjectCount
+        }</span>
+        <span class="cov8" title="1">if len(newRank) &gt; len(maxRank) </span><span class="cov8" title="1">{
+                // We rolled over a digit which will mess up the lexical sorting,
+                // run this again but with a wider widestRank.
+                // This should only ever recurse once.
+                return Next(currentMaxRank, formatRank(bucket, newRank, len(id)), stepSize)
+
+        }</span>
+
+        <span class="cov8" title="1">return formatRank(bucket, newRank, len(id)), nil</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
